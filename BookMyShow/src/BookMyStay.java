@@ -1,48 +1,90 @@
+import java.io.*;
 import java.util.*;
 
-class BookingManager {
-    private Map<String, Integer> inventory = new HashMap<>();
-    private Map<String, String> reservations = new HashMap<>();
-    private Stack<String> rollbackStack = new Stack<>();
+class RoomInventory {
 
-    public BookingManager() {
+    private Map<String, Integer> inventory = new HashMap<>();
+
+    public RoomInventory() {
         inventory.put("Single", 5);
         inventory.put("Double", 3);
         inventory.put("Suite", 2);
-        reservations.put("Single-1", "Abhisheak");
     }
 
-    public void cancelBooking(String reservationId) {
-        if (!reservations.containsKey(reservationId)) {
-            System.out.println("Cancellation failed. Reservation not found.");
+    public void setInventory(String type, int count) {
+        inventory.put(type, count);
+    }
+
+    public Map<String, Integer> getInventory() {
+        return inventory;
+    }
+
+    public void printInventory() {
+        System.out.println("Current Inventory:");
+        System.out.println("Single: " + inventory.get("Single"));
+        System.out.println("Double: " + inventory.get("Double"));
+        System.out.println("Suite: " + inventory.get("Suite"));
+    }
+}
+
+class FilePersistenceService {
+
+    public void saveInventory(RoomInventory inventory, String filePath) {
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+            for (Map.Entry<String, Integer> entry : inventory.getInventory().entrySet()) {
+                writer.write(entry.getKey() + "-" + entry.getValue());
+                writer.newLine();
+            }
+            writer.close();
+            System.out.println("Inventory saved successfully.");
+        } catch (IOException e) {
+            System.out.println("Error saving inventory.");
+        }
+    }
+
+    public void loadInventory(RoomInventory inventory, String filePath) {
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            System.out.println("No valid inventory data found. Starting fresh.");
             return;
         }
 
-        String roomType = reservationId.split("-")[0];
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line;
 
-        reservations.remove(reservationId);
-        rollbackStack.push(reservationId);
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("-");
+                String type = parts[0];
+                int count = Integer.parseInt(parts[1]);
+                inventory.setInventory(type, count);
+            }
 
-        inventory.put(roomType, inventory.get(roomType) + 1);
+            reader.close();
 
-        System.out.println("Booking cancelled successfully. Inventory restored for room type: " + roomType);
-        System.out.println();
-        System.out.println("Rollback History (Most Recent First):");
-
-        while (!rollbackStack.isEmpty()) {
-            System.out.println("Released Reservation ID: " + rollbackStack.pop());
+        } catch (Exception e) {
+            System.out.println("No valid inventory data found. Starting fresh.");
         }
-
-        System.out.println();
-        System.out.println("Updated " + roomType + " Room Availability: " + inventory.get(roomType));
     }
 }
 
 public class BookMyStay {
-    public static void main(String[] args) {
-        BookingManager manager = new BookingManager();
 
-        System.out.println("Booking Cancellation");
-        manager.cancelBooking("Single-1");
+    public static void main(String[] args) {
+
+        System.out.println("System Recovery");
+
+        RoomInventory inventory = new RoomInventory();
+        FilePersistenceService persistenceService = new FilePersistenceService();
+
+        String filePath = "inventory.txt";
+
+        persistenceService.loadInventory(inventory, filePath);
+
+        inventory.printInventory();
+
+        persistenceService.saveInventory(inventory, filePath);
     }
 }
