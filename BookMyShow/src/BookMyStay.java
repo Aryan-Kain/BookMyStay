@@ -1,76 +1,57 @@
 import java.util.*;
 
-class Reservation {
-    private String guestName;
-    private String roomType;
-
-    public Reservation(String guestName, String roomType) {
-        this.guestName = guestName;
-        this.roomType = roomType;
-    }
-
-    public String getGuestName() {
-        return guestName;
-    }
-
-    public String getRoomType() {
-        return roomType;
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
     }
 }
 
-class BookingRequestQueue {
+class BookingSystem {
+    private Map<String, Integer> rooms = new HashMap<>();
 
-    private Queue<Reservation> requestQueue;
-
-    public BookingRequestQueue() {
-        requestQueue = new LinkedList<>();
+    public BookingSystem() {
+        rooms.put("Single", 2);
+        rooms.put("Double", 2);
+        rooms.put("Suite", 1);
     }
 
-    public void addRequest(Reservation reservation) {
-        requestQueue.offer(reservation);
-        System.out.println("Booking request added for Guest: "
-                + reservation.getGuestName() + " | Room Type: "
-                + reservation.getRoomType());
+    public void validateRoomType(String roomType) throws InvalidBookingException {
+        if (!rooms.containsKey(roomType)) {
+            throw new InvalidBookingException("Booking failed: Invalid room type selected.");
+        }
     }
 
-    public void showRequests() {
+    public void bookRoom(String guestName, String roomType) throws InvalidBookingException {
+        validateRoomType(roomType);
 
-        System.out.println("\nCurrent Booking Request Queue (FIFO Order):");
+        int available = rooms.get(roomType);
 
-        if (requestQueue.isEmpty()) {
-            System.out.println("No booking requests available.");
-            return;
+        if (available <= 0) {
+            throw new InvalidBookingException("Booking failed: No rooms available.");
         }
 
-        int position = 1;
-
-        for (Reservation r : requestQueue) {
-            System.out.println(position + ". Guest: " + r.getGuestName()
-                    + " | Room Type: " + r.getRoomType());
-            position++;
-        }
+        rooms.put(roomType, available - 1);
+        System.out.println("Booking successful for " + guestName + " in " + roomType + " room.");
     }
 }
 
-public class BookMyStay{
-
+public class BookApp {
     public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        BookingSystem system = new BookingSystem();
 
-        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+        System.out.print("Enter guest name: ");
+        String guestName = sc.nextLine();
 
-        System.out.println("Guests submitting booking requests...\n");
+        System.out.print("Enter room type (Single/Double/Suite): ");
+        String roomType = sc.nextLine();
 
-        Reservation r1 = new Reservation("Alice", "Single");
-        Reservation r2 = new Reservation("Bob", "Double");
-        Reservation r3 = new Reservation("Charlie", "Suite");
-        Reservation r4 = new Reservation("David", "Single");
-        bookingQueue.addRequest(r1);
-        bookingQueue.addRequest(r2);
-        bookingQueue.addRequest(r3);
-        bookingQueue.addRequest(r4);
+        try {
+            system.bookRoom(guestName, roomType);
+        } catch (InvalidBookingException e) {
+            System.out.println(e.getMessage());
+        }
 
-        bookingQueue.showRequests();
-
-        System.out.println("\nAll requests are stored in arrival order and waiting for allocation.");
+        sc.close();
     }
 }
